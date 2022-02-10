@@ -3,7 +3,7 @@
 
 
 <h4>
-Chocolate Coins is a Paper Trading Web app for Crypto Currency. It is named chocolate coins because I loved those things when I was younger and whenever I see pictures of Bitcoin or other types of digital currency it makes me think of those chocolate coins!
+Chocolate Coins is a Paper Trading Web app for Crypto Currency. It is named chocolate coins because I loved those things when I was younger and whenever I see pictures of Bitcoin or other types of digital/crypto currency it makes me think of those chocolate coins!
 </h4>
 
 <h4>
@@ -80,7 +80,7 @@ Where will I get my Data and Data Set?
 - I'll be making my own by connecting to the Coinmarketcap API.
 
 <p>
-Database Design:
+Database Design: *Note: I may be adding a transaction table to keep tract of all transactions*
 </p>
 
    ![database design picture](/database_design/db.jpg)
