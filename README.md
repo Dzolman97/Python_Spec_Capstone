@@ -3,7 +3,7 @@
 
 
 <h4>
-Chocolate Coins is a Paper Trading Web app for Crypto Currency. It is named chocolate coins because I loved those things when I was younger and whenever I see pictures of Bitcoin or other types of digital/crypto currency it makes me think of those chocolate coins!
+Chocolate Coins is a Paper Trading Web app for Crypto Currency. You're not trading with real money or with real coins, so I'm calling it chocolate coins like the candy!
 </h4>
 
 <h4>
