@@ -77,4 +77,10 @@ Order of importance:
 Where will I get my Data and Data Set?
 </p>
 
-- I'll be making my own by connecting to the Coinmarketcap API, not with Web Scraper.
+- I'll be making my own by connecting to the Coinmarketcap API.
+
+<p>
+Database Design:
+</p>
+
+   ![database design picture](/database_design/db.jpg)
