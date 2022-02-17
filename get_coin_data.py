@@ -41,6 +41,8 @@ def latest_data():
     listed_coins = get_coins()
 
     out_of_list = listed_coins[0]['data']
+
+    primary_key = 1
     
     # To be a new list of Dictionaires with data needed
     latest_coin_data = []
@@ -51,6 +53,7 @@ def latest_data():
 
        data = out_of_list[coin]
 
+       filtered_coin_data['coin_keys'] = primary_key
        filtered_coin_data['coin_name'] = data['name']
        filtered_coin_data['coin_symbol'] = data['symbol']
        filtered_coin_data['coin_price'] = data['quote']['USD']['price']
@@ -63,9 +66,11 @@ def latest_data():
        filtered_coin_data['percent_change_30d'] = data['quote']['USD']['percent_change_30d']
        filtered_coin_data['percent_change_60d'] = data['quote']['USD']['percent_change_60d']
        filtered_coin_data['percent_change_90d'] = data['quote']['USD']['percent_change_90d']
-       filtered_coin_data['date'] = datetime.date.today()
        filtered_coin_data['time'] = data['quote']['USD']['last_updated']
        
+
+       primary_key += 1
+
        # Adding to list of dictionaries each time the loop runs. Expected out: new_list = [{dictionary}, {dictionary}, {dictionary}]
        latest_coin_data.append(filtered_coin_data)
 
@@ -81,39 +86,80 @@ conn = None
 cur = None
 
 # To collect and save pricing data. With date and time being saved a map or graph can eventually be made for visualization and backtesting.
+def initialize_table():
+  try:
+    conn = psycopg2.connect(
+                host = hostname,
+                dbname = database,
+                user = username,
+                password = pwd,
+                port = port_id)
+        
+    cur = conn.cursor()
+        
+    #Bulk insert into database
+    values = latest_data()
+    query = """INSERT INTO coin_data VALUES (%(coin_keys)s, %(coin_name)s, %(coin_symbol)s, %(coin_price)s, %(market_cap)s,
+            %(volume_24h)s, %(volume_change_24h)s, %(percent_change_1h)s, %(percent_change_24h)s, %(percent_change_7d)s, 
+            %(percent_change_30d)s, %(percent_change_60d)s, %(percent_change_90d)s, %(time)s)"""
 
-try:
-  conn = psycopg2.connect(
-              host = hostname,
-              dbname = database,
-              user = username,
-              password = pwd,
-               port = port_id)
-      
-  cur = conn.cursor()
-      
-  #Bulk insert into database
-  values = latest_data()
-  query = """INSERT INTO latest_coin_data VALUES (%(coin_name)s, %(coin_symbol)s, %(coin_price)s, %(market_cap)s,
-          %(volume_24h)s, %(volume_change_24h)s, %(percent_change_1h)s, %(percent_change_24h)s, %(percent_change_7d)s, 
-          %(percent_change_30d)s, %(percent_change_60d)s, %(percent_change_90d)s, %(date)s, %(time)s)"""
-      
-  execute_batch(cur, query, values)
-
-  # print(cur.execute('SELECT * FROM latest_coin_data ORDER BY time DESC;'))
-
-  conn.commit()
-except Exception as error:
-  print(error)
-finally:
-  if cur is not None:
-      cur.close()
-  if conn is not None:
-      conn.close()
-print("Added data, adding more in 5 minutes...")
+    # query = """UPDATE coin_data SET coin_price = %(coin_price)s, market_cap = %(market_cap)s, volume_24h = %(volume_24h)s, volume_change_24h = %(volume_change_24h)s,
+    #           percent_change_1h = %(percent_change_1h)s, percent_change_24h = %(percent_change_24h)s, percent_change_7d = %(percent_change_7d)s,
+    #           percent_change_30d = %(percent_change_30d)s, percent_change_60d = %(percent_change_60d)s, percent_change_90d = %(percent_change_90d)s, time = %(time)s
+    #           WHERE coin_keys = %(coin_keys)s"""
+        
+    execute_batch(cur, query, values)
 
 
+    conn.commit()
+  except Exception as error:
+    print(error)
+  finally:
+    if cur is not None:
+        cur.close()
+    if conn is not None:
+        conn.close()
+  print("Initialized table...")
+
+
+def update_table():
+  try:
+    conn = psycopg2.connect(
+                host = hostname,
+                dbname = database,
+                user = username,
+                password = pwd,
+                port = port_id)
+        
+    cur = conn.cursor()
+        
+    #Bulk insert into database
+    values = latest_data()
+    # query = """INSERT INTO coin_data VALUES (%(coin_keys)s, %(coin_name)s, %(coin_symbol)s, %(coin_price)s, %(market_cap)s,
+    #         %(volume_24h)s, %(volume_change_24h)s, %(percent_change_1h)s, %(percent_change_24h)s, %(percent_change_7d)s, 
+    #         %(percent_change_30d)s, %(percent_change_60d)s, %(percent_change_90d)s, %(time)s)"""
+
+    query = """UPDATE coin_data SET coin_price = %(coin_price)s, market_cap = %(market_cap)s, volume_24h = %(volume_24h)s, volume_change_24h = %(volume_change_24h)s,
+              percent_change_1h = %(percent_change_1h)s, percent_change_24h = %(percent_change_24h)s, percent_change_7d = %(percent_change_7d)s,
+              percent_change_30d = %(percent_change_30d)s, percent_change_60d = %(percent_change_60d)s, percent_change_90d = %(percent_change_90d)s, time = %(time)s
+              WHERE coin_keys = %(coin_keys)s"""
+        
+    execute_batch(cur, query, values)
+
+
+    conn.commit()
+  except Exception as error:
+    print(error)
+  finally:
+    if cur is not None:
+        cur.close()
+    if conn is not None:
+        conn.close()
+  print("Added data, adding more in 5 minutes...")
+
+
+# initialize_table()
 
 while(True):
   time.sleep(300)
-  os.system('python get_coin_data.py')
+  update_table()

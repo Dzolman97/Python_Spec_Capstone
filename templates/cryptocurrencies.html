@@ -6,5 +6,20 @@
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Cryptocurrencies</h1>
   </div>
+
+  <div class="container-fluid">
+    <div class="row row-cols-5">
+    {% for info in current %}
+          <div class="card flex-wrap" style="width: 18rem; border-radius: 10px; padding: 10px; margin: 10px; box-shadow: 5px 5px rgb(153, 153, 153); background-color: rgb(74, 136, 136);">
+            <h5 class="card-title" style="text-align: center;">{{ info.coin_symbol }}</h5>
+            <p class="card-subtitle mb-2" style="text-align: center; color: rgb(255, 255, 255);">{{ info.coin_name }}</p>
+            <p class="card-text" style="text-align: center;">Price: ${{ info.coin_price }}</p>
+            <p class="card-text" style="text-align: center;">1hr %: {{info.percent_change_1h}}</p>
+            <p class="card-text" style="text-align: center;">24hr %: {{info.percent_change_24h}}</p>
+            <p class="card-text" style="text-align: center;">24hr Volume: {{ info.volume_change_24h }}</p>
+          </div>
+    {% endfor %}
+    </div>
+  </div>
 </main>
 {% endblock %}
