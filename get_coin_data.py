@@ -53,7 +53,7 @@ def latest_data():
 
        data = out_of_list[coin]
 
-       filtered_coin_data['coin_keys'] = primary_key
+       filtered_coin_data['id'] = primary_key
        filtered_coin_data['coin_name'] = data['name']
        filtered_coin_data['coin_symbol'] = data['symbol']
        filtered_coin_data['coin_price'] = data['quote']['USD']['price']
@@ -103,11 +103,6 @@ def initialize_table():
             %(volume_24h)s, %(volume_change_24h)s, %(percent_change_1h)s, %(percent_change_24h)s, %(percent_change_7d)s, 
             %(percent_change_30d)s, %(percent_change_60d)s, %(percent_change_90d)s, %(time)s)"""
 
-    # query = """UPDATE coin_data SET coin_price = %(coin_price)s, market_cap = %(market_cap)s, volume_24h = %(volume_24h)s, volume_change_24h = %(volume_change_24h)s,
-    #           percent_change_1h = %(percent_change_1h)s, percent_change_24h = %(percent_change_24h)s, percent_change_7d = %(percent_change_7d)s,
-    #           percent_change_30d = %(percent_change_30d)s, percent_change_60d = %(percent_change_60d)s, percent_change_90d = %(percent_change_90d)s, time = %(time)s
-    #           WHERE coin_keys = %(coin_keys)s"""
-        
     execute_batch(cur, query, values)
 
 
@@ -135,9 +130,6 @@ def update_table():
         
     #Bulk insert into database
     values = latest_data()
-    # query = """INSERT INTO coin_data VALUES (%(coin_keys)s, %(coin_name)s, %(coin_symbol)s, %(coin_price)s, %(market_cap)s,
-    #         %(volume_24h)s, %(volume_change_24h)s, %(percent_change_1h)s, %(percent_change_24h)s, %(percent_change_7d)s, 
-    #         %(percent_change_30d)s, %(percent_change_60d)s, %(percent_change_90d)s, %(time)s)"""
 
     query = """UPDATE coin_data SET coin_price = %(coin_price)s, market_cap = %(market_cap)s, volume_24h = %(volume_24h)s, volume_change_24h = %(volume_change_24h)s,
               percent_change_1h = %(percent_change_1h)s, percent_change_24h = %(percent_change_24h)s, percent_change_7d = %(percent_change_7d)s,

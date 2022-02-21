@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import time
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, request, url_for
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField
@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+
 
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
@@ -20,10 +21,14 @@ db = SQLAlchemy(app)
 lm = LoginManager()
 lm.init_app(app)
 lm.login_view = 'login'
+
+
 # --------------------------  Database Classes  ------------------------------
 # --------- Note to self, put these in seperate folder when ready. -----------
+
+
 class coin_data(db.Model):
-   coin_keys = db.Column(db.Integer, primary_key=True)
+   id = db.Column(db.Integer, primary_key=True)
    coin_name = db.Column(db.String, nullable=False)
    coin_symbol = db.Column(db.String, nullable=False)
    coin_price = db.Column(db.Float(14, 5), nullable=False)
@@ -38,8 +43,7 @@ class coin_data(db.Model):
    percent_change_90d = db.Column(db.Float, nullable=False)
    time = db.Column(db.TIMESTAMP, nullable=False)
 
-   def __init__(self, coin_keys, coin_name, coin_symbol, coin_price, market_cap, volume_24h, volume_change_24h, percent_change_1h, percent_change_24h, percent_change_7d, percent_change_30d, percent_change_60d, percent_change_90d):
-      self.coin_keys = coin_keys
+   def __init__(self, coin_name, coin_symbol, coin_price, market_cap, volume_24h, volume_change_24h, percent_change_1h, percent_change_24h, percent_change_7d, percent_change_30d, percent_change_60d, percent_change_90d):
       self.coin_name = coin_name
       self.coin_symbol = coin_symbol
       self.coin_price = coin_price
@@ -61,12 +65,21 @@ class users(UserMixin ,db.Model):
    username = db.Column(db.String(75), nullable=False, unique=True)
    starting_dollars = db.Column(db.Float(14, 5), nullable=False)
    buying_power = db.Column(db.Float(14, 5))
+   # watching = db.relationship('coin_data', secondary=user_watchlist, backref='watchers')
 
-   def __init__(self, email, password, username, starting_dollars):
+   def __init__(self, email, password, username, starting_dollars, buying_power):
       self.email = email
       self.password = password
       self.username = username
       self.starting_dollars = starting_dollars
+      self.buying_power = buying_power
+
+class user_watchlist(db.Model):
+   id = db.Column(db.Integer, primary_key=True)
+   user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+   coin_id = db.Column(db.Integer, db.ForeignKey('coin_data.id'))
+
+
 
 @lm.user_loader
 def load_user(id):
@@ -88,6 +101,9 @@ class RegisterForm(FlaskForm):
    password = PasswordField('Password:', validators=[InputRequired(), Length(min=8, max=80)])
    starting_dollars = StringField('How much money do you want to start with?', validators=[InputRequired(), Length(min=4)])
 
+
+class WatchlistForm(FlaskForm):
+   coin_name = StringField('Search for a Coin to add to your watchlist:', validators=[InputRequired()])
 
 # -----------   Routes   --------------
 
@@ -121,7 +137,7 @@ def register():
    if form.validate_on_submit():
       starting_dollars = int(form.starting_dollars.data)
       hashed_pass = generate_password_hash(form.password.data, method='sha256')
-      new_user = users(email=form.email.data, username=form.username.data, password=hashed_pass, starting_dollars=starting_dollars)
+      new_user = users(email=form.email.data, username=form.username.data, password=hashed_pass, starting_dollars=starting_dollars, buying_power=starting_dollars)
       db.session.add(new_user)
       db.session.commit()
 
@@ -133,7 +149,14 @@ def register():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-   return render_template('dashboard.html', name=current_user.username)
+   u_id = current_user.id
+   user_watching_these = user_watchlist.query.filter_by(user_id=u_id).all()
+   list_of_watching = []
+   for coin in user_watching_these:
+      coin_id = coin.coin_id
+      query_data = coin_data.query.get(coin_id)
+      list_of_watching.append(query_data)
+   return render_template('dashboard.html', name=current_user.username, watching=list_of_watching, buying_power=current_user.buying_power)
 
 
 @app.route('/currencies')
@@ -143,10 +166,48 @@ def currencies():
    return render_template('cryptocurrencies.html', current=current)
 
 
-@app.route('/watchlist')
-@login_required
+@app.route('/watchlist', methods=['GET', 'POST'])
 def watchlist():
-   return render_template('watchlist.html')
+   form = WatchlistForm()
+   u_id = current_user.id
+
+   if request.method == 'POST':
+      if form.validate_on_submit():
+         coin_name = form.coin_name.data
+         if coin_name.isupper() == True:
+            searched_for = coin_data.query.filter_by(coin_symbol=coin_name).first()
+            to_add = user_watchlist(user_id=u_id, coin_id=searched_for.id)
+            db.session.add(to_add)
+            db.session.commit()
+            return redirect(url_for('watchlist'))
+         else:
+            coin_name = coin_name.capitalize()
+            searched_for = coin_data.query.filter_by(coin_name=coin_name).first()
+            to_add = user_watchlist(user_id=u_id, coin_id=searched_for.id)
+            db.session.add(to_add)
+            db.session.commit()
+            return redirect(url_for('watchlist'))
+   elif request.method == 'GET':
+      user_watching_these = user_watchlist.query.filter_by(user_id=u_id).all()
+      list_of_watching = []
+      for coin in user_watching_these:
+         coin_id = coin.coin_id
+         query_data = coin_data.query.get(coin_id)
+         list_of_watching.append(query_data)
+      return render_template('watchlist.html', form=form, watching=list_of_watching, in_watchlist=user_watching_these)
+
+
+@app.route('/delete/<int:id>')
+def delete(id):
+   coin_to_delete = user_watchlist.query.filter_by(coin_id=id).first()
+
+   try:
+      db.session.delete(coin_to_delete)
+      db.session.commit()
+      return redirect(url_for('watchlist'))
+
+   except:
+      return "There was a problem deleting this from your watchlist. Please try again later."
 
 
 @app.route('/transactions')
