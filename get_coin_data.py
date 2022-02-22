@@ -17,7 +17,7 @@ parameters = {
 }
 headers = {
   'Accepts': 'application/json',
-  'X-CMC_PRO_API_KEY': '',
+  'X-CMC_PRO_API_KEY': os.environ.get('COIN_API_KEY'),
 }
 
 session = Session()
@@ -77,10 +77,10 @@ def latest_data():
     return latest_coin_data
 
 
-hostname = ''
-database = ''
-username = ''
-pwd = ''
+hostname = 'localhost'
+database = 'test'
+username = 'postgres'
+pwd = os.environ.get('DB_PASS')
 port_id = 5432
 conn = None
 cur = None
@@ -134,7 +134,7 @@ def update_table():
     query = """UPDATE coin_data SET coin_price = %(coin_price)s, market_cap = %(market_cap)s, volume_24h = %(volume_24h)s, volume_change_24h = %(volume_change_24h)s,
               percent_change_1h = %(percent_change_1h)s, percent_change_24h = %(percent_change_24h)s, percent_change_7d = %(percent_change_7d)s,
               percent_change_30d = %(percent_change_30d)s, percent_change_60d = %(percent_change_60d)s, percent_change_90d = %(percent_change_90d)s, time = %(time)s
-              WHERE coin_keys = %(coin_keys)s"""
+              WHERE id = %(id)s"""
         
     execute_batch(cur, query, values)
 
@@ -152,6 +152,7 @@ def update_table():
 
 # initialize_table()
 
-while(True):
-  time.sleep(300)
-  update_table()
+# while(True):
+#   time.sleep(300)
+
+update_table()

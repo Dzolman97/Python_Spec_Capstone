@@ -1,9 +1,11 @@
 from datetime import datetime
+from sqlite3 import Timestamp
 from time import time
 from flask import Flask, render_template, redirect, request, url_for
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField
+from sqlalchemy import TIMESTAMP
+from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -14,7 +16,7 @@ import os
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
 app.config['SECRET_KEY'] = SECRET_KEY
-app.config['SQLALCHEMY_DATABASE_URI'] = ''
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
@@ -24,7 +26,7 @@ lm.login_view = 'login'
 
 
 # --------------------------  Database Classes  ------------------------------
-# --------- Note to self, put these in seperate folder when ready. -----------
+# --------- Note to self, put these in seperate files when ready. -----------
 
 
 class coin_data(db.Model):
@@ -79,6 +81,29 @@ class user_watchlist(db.Model):
    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
    coin_id = db.Column(db.Integer, db.ForeignKey('coin_data.id'))
 
+class transaction_ledger(db.Model):
+   id = db.Column(db.Integer, primary_key=True)
+   user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+   coin_id = db.Column(db.Integer, db.ForeignKey('coin_data.id'))
+   buy = db.Column(db.Boolean, nullable=False)
+   sell = db.Column(db.Boolean, nullable=False)
+   quantity = db.Column(db.Float)
+   price_at_transaction = db.Column(db.Float)
+   transaction_in_dollars = db.Column(db.Float)
+   time = db.Column(db.TIMESTAMP)
+
+class wallet(db.Model):
+   id = db.Column(db.Integer, primary_key=True)
+   user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+   coin_id = db.Column(db.Integer, db.ForeignKey('coin_data.id'))
+   quantity = db.Column(db.Float)
+
+class cur_investment(db.Model):
+   id = db.Column(db.Integer, primary_key=True)
+   user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+   investment_amount = db.Column(db.Float)
+   time = db.Column(db.TIMESTAMP)
+
 
 
 @lm.user_loader
@@ -87,7 +112,7 @@ def load_user(id):
 
 
 # -------------------  Login and Register Form Classes -----------------------
-# --------- Note to self, put these in seperate folder when ready. -----------
+# --------- Note to self, put these in seperate files when ready. -----------
 
 
 class LoginForm(FlaskForm):
@@ -104,6 +129,11 @@ class RegisterForm(FlaskForm):
 
 class WatchlistForm(FlaskForm):
    coin_name = StringField('Search for a Coin to add to your watchlist:', validators=[InputRequired()])
+
+
+class TransactionForm(FlaskForm):
+   dollar_amnt = StringField('Transaction Amount in Dollars: ', validators=[InputRequired(), Length(min=1)])
+
 
 # -----------   Routes   --------------
 
@@ -164,6 +194,62 @@ def dashboard():
 def currencies():
    current = coin_data.query.all()
    return render_template('cryptocurrencies.html', current=current)
+
+
+@app.route('/buypage/coin_id/<int:id>', methods=['GET', 'POST'])
+@login_required
+def buypage(id):
+   coin_info = coin_data.query.filter_by(id=id)
+   coin_price = []
+   for i in coin_info:
+      price = i.coin_price
+      coin_price.append(price)
+   form = TransactionForm()
+
+   if request.method == 'POST':
+      if form.validate_on_submit():
+         dollar_amnt = float(int(form.dollar_amnt.data))
+         coin_quantity = float(dollar_amnt / float(coin_price[0]))
+         dt = datetime.now()
+         new_transaction = transaction_ledger(user_id=current_user.id, coin_id=id, buy=True, sell=False, quantity=coin_quantity, price_at_transaction=float(coin_price[0]), transaction_in_dollars=dollar_amnt, time=dt)
+         wallet_addition = wallet(user_id=current_user.id, coin_id=id, quantity=coin_quantity)
+         user = users.query.get(current_user.id)
+         user.buying_power = int(user.buying_power) - dollar_amnt
+         db.session.add(new_transaction)
+         db.session.add(wallet_addition)
+         db.session.commit()
+         return redirect(url_for('dashboard'))
+
+   elif request.method == 'GET':
+      return render_template('buypage.html', form=form, info=coin_info, price=coin_price[0])
+
+
+@app.route('/sellpage/coin_id/<int:id>', methods=['GET', 'POST'])
+@login_required
+def sellpage(id):
+   coin_info = coin_data.query.filter_by(id=id)
+   coin_price = []
+   for i in coin_info:
+      price = i.coin_price
+      coin_price.append(price)
+   form = TransactionForm()
+
+   if request.method == 'POST':
+      if form.validate_on_submit():
+         dollar_amnt = float(int(form.dollar_amnt.data))
+         coin_quantity = float(dollar_amnt / float(coin_price[0]))
+         dt = datetime.now()
+         new_transaction = transaction_ledger(user_id=current_user.id, coin_id=id, buy=False, sell=True, quantity=coin_quantity, price_at_transaction=float(coin_price[0]), transaction_in_dollars=dollar_amnt, time=dt)
+         wallet_update = wallet(user_id=current_user.id, coin_id=id, quantity=-coin_quantity)
+         user = users.query.get(current_user.id)
+         user.buying_power = int(user.buying_power) + dollar_amnt
+         db.session.add(new_transaction)
+         db.session.add(wallet_update)
+         db.session.commit()
+         return redirect(url_for('dashboard'))
+
+   elif request.method == 'GET':
+      return render_template('sellpage.html', form=form, info=coin_info, price=coin_price[0])
 
 
 @app.route('/watchlist', methods=['GET', 'POST'])
