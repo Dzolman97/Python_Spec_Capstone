@@ -13,6 +13,13 @@
          {% for info in info %}
            <div class="card flex-wrap" style="width: 50rem; border-radius: 10px; padding: 10px; margin: 10px; box-shadow: 5px 5px rgb(153, 153, 153); background-color: rgb(255, 255, 255);">
             <h5 class="card-title" style="text-align: center;">{{ info.coin_name }} at ${{ price }} per coin.</h5>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for msg in messages %}
+                <p style="color: red;"> {{ msg }} </p>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
             <form class="register-form" style="background-color: rgb(255, 255, 255); border-radius: 5px; padding: 20px;" method="post">
                {{ form.hidden_tag() }}
                <div class="mb-3">
