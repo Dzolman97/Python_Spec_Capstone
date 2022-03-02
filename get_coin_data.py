@@ -18,7 +18,7 @@ parameters = {
 }
 headers = {
   'Accepts': 'application/json',
-  'X-CMC_PRO_API_KEY': os.environ.get('COIN_API_KEY'),
+  'X-CMC_PRO_API_KEY': '35846a10-4b82-4af0-98cf-74fa0a283fc6'
 }
 
 session = Session()
@@ -107,10 +107,10 @@ def latest_data():
     return latest_coin_data
 
 
-hostname = 'localhost'
-database = 'test'
-username = 'postgres'
-pwd = os.environ.get('DB_PASS')
+hostname = 'ec2-54-160-96-70.compute-1.amazonaws.com'
+database = 'dauj723k4ubd7b'
+username = 'smqidagicyhasi'
+pwd = '3ae3e488a3c3f30dca19ac4e02fe53eef8984115499abe7f96a772ab41f2bc5d'
 port_id = 5432
 conn = None
 cur = None
