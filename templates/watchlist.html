@@ -25,10 +25,27 @@
         <p><a style="background-color: rgb(105, 105, 105);" class="btn btn-primary" href="/delete/{{ info.id }}">Delete</a></p>
         <h5 class="card-title" style="text-align: center;">{{ info.coin_symbol }}</h5>
         <p class="card-subtitle mb-2" style="text-align: center; color: rgb(255, 255, 255);">{{ info.coin_name }}</p>
-        <p class="card-text" style="text-align: center;">Price: ${{ info.coin_price }}</p>
-        <p class="card-text" style="text-align: center;">1hr %: {{info.percent_change_1h}}</p>
-        <p class="card-text" style="text-align: center;">24hr %: {{info.percent_change_24h}}</p>
-        <p class="card-text" style="text-align: center;">24hr Volume: {{ info.volume_change_24h }}</p>
+        <p class="card-text" style="text-align: center;">Price: ${{ info.coin_price|to_float }}</p>
+        {% if info.percent_change_1h > 0 %}
+          <p class="card-text" style="text-align: center; color: rgb(0, 255, 98);">1hr %: {{ info.percent_change_1h }}</p>
+        {% endif %}
+        {% if info.percent_change_1h < 0 %}
+          <p class="card-text" style="text-align: center; color: rgb(255, 0, 0);">1hr %: {{ info.percent_change_1h }}</p>
+        {% endif %}
+            
+        {% if info.percent_change_24h > 0 %}
+          <p class="card-text" style="text-align: center; color: rgb(0, 255, 98)">24hr %: {{ info.percent_change_24h }}</p>
+        {% endif %}
+        {% if info.percent_change_24h < 0 %}
+          <p class="card-text" style="text-align: center; color: rgb(255, 0, 0)">24hr %: {{ info.percent_change_24h }}</p>
+        {% endif %}
+          
+        {% if info.volume_change_24h > 0 %}
+          <p class="card-text" style="text-align: center; color: rgb(0, 255, 98)">24hr %: {{ info.volume_change_24h }}</p>
+        {% endif %}
+        {% if info.volume_change_24h < 0 %}
+          <p class="card-text" style="text-align: center; color: rgb(255, 0, 0)">24hr %: {{ info.volume_change_24h }}</p>
+        {% endif %}
         <p style="text-align: center;"><a style="background-color: rgb(105, 105, 105); width: 14rem;" class="btn btn-primary" href="/buypage/coin_id/{{ info.id }}">Buy</a></p>
         <p style="text-align: center;"><a style="background-color: rgb(105, 105, 105); width: 14rem;" class="btn btn-primary" href="/sellpage/coin_id/{{ info.id }}">Sell</a></p>
       </div>

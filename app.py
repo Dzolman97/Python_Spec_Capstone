@@ -168,7 +168,8 @@ def register():
       db.session.add(new_user)
       db.session.commit()
 
-      return redirect(url_for('dashboard'))
+      flash("New user successfully created! Please Login!")
+      return redirect(url_for('login'))
 
    return render_template('register.html', form=form)
 
@@ -377,7 +378,15 @@ def delete(id):
 @app.route('/transactions')
 @login_required
 def transactions():
-   return render_template('transactions.html')
+   users_transactions = transaction_ledger.query.filter_by(user_id=current_user.id).all()
+
+   coin_info = []
+
+   for info in users_transactions:
+      coin_info_query = coin_data.query.filter_by(id=info.coin_id).first()
+      coin_info.append(coin_info_query)
+
+   return render_template('transactions.html', users_transactions=users_transactions, coin_info=coin_info)
 
 
 @app.route('/signout')
