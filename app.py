@@ -14,7 +14,7 @@ import os
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
 app.config['SECRET_KEY'] = SECRET_KEY
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://smqidagicyhasi:3ae3e488a3c3f30dca19ac4e02fe53eef8984115499abe7f96a772ab41f2bc5d@ec2-54-160-96-70.compute-1.amazonaws.com:5432/dauj723k4ubd7b'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace("://", "ql://", 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
