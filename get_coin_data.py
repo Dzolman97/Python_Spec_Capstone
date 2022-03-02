@@ -7,6 +7,7 @@ from psycopg2.extras import execute_batch
 import datetime
 import time
 import os
+import csv
 
 
 # Request specific coins on coin marketcap
@@ -69,6 +70,35 @@ def latest_data():
        filtered_coin_data['time'] = data['quote']['USD']['last_updated']
        
 
+       name = data['name']
+       symbol = data['symbol']
+       price = data['quote']['USD']['price']
+       volume_24 = data['quote']['USD']['volume_24h']
+       percent_change_1h = data['quote']['USD']['percent_change_1h']
+       percent_change_24h = data['quote']['USD']['percent_change_24h']
+       percent_change_7d = data['quote']['USD']['percent_change_7d']
+       time = data['quote']['USD']['last_updated']
+
+       file_exists = os.path.exists(f'./csv_data/{name}.csv')
+
+       if file_exists == False:
+
+         with open (f'./csv_data/{name}.csv', 'w') as new_file:
+           fieldnames = ['coin_name', 'coin_symbol', 'coin_price', 'volume_24h', 'percent_change_1h', 'percent_change_24h', 'percent_change_7d', 'time']
+
+           csv_writer = csv.writer(new_file)
+
+           csv_writer.writerow(fieldnames)
+       
+       elif file_exists == True:
+         with open (f'./csv_data/{name}.csv', 'a', newline='') as File:
+
+           csv_writer = csv.writer(File)
+
+           csv_writer.writerow([f'{name}', f'{symbol}', f'{price}', f'{volume_24}', f'{percent_change_1h}', f'{percent_change_24h}', f'{percent_change_7d}', f'{time}'])
+
+
+
        primary_key += 1
 
        # Adding to list of dictionaries each time the loop runs. Expected out: new_list = [{dictionary}, {dictionary}, {dictionary}]
@@ -99,7 +129,7 @@ def initialize_table():
         
     #Bulk insert into database
     values = latest_data()
-    query = """INSERT INTO coin_data VALUES (%(coin_keys)s, %(coin_name)s, %(coin_symbol)s, %(coin_price)s, %(market_cap)s,
+    query = """INSERT INTO coin_data VALUES (%(id)s, %(coin_name)s, %(coin_symbol)s, %(coin_price)s, %(market_cap)s,
             %(volume_24h)s, %(volume_change_24h)s, %(percent_change_1h)s, %(percent_change_24h)s, %(percent_change_7d)s, 
             %(percent_change_30d)s, %(percent_change_60d)s, %(percent_change_90d)s, %(time)s)"""
 
@@ -149,10 +179,3 @@ def update_table():
         conn.close()
   print("Added data, adding more in 5 minutes...")
 
-
-# initialize_table()
-
-# while(True):
-#   time.sleep(300)
-
-update_table()

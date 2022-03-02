@@ -1,10 +1,8 @@
 from datetime import datetime
-from sqlite3 import Timestamp
 from time import time
 from flask import Flask, render_template, redirect, request, url_for, flash
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
-from sqlalchemy import TIMESTAMP
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy import SQLAlchemy
@@ -67,7 +65,6 @@ class users(UserMixin ,db.Model):
    username = db.Column(db.String(75), nullable=False, unique=True)
    starting_dollars = db.Column(db.Float(14, 5), nullable=False)
    buying_power = db.Column(db.Float(14, 5))
-   # watching = db.relationship('coin_data', secondary=user_watchlist, backref='watchers')
 
    def __init__(self, email, password, username, starting_dollars, buying_power):
       self.email = email
@@ -153,7 +150,8 @@ def login():
             login_user(user, remember=True)
             return redirect(url_for('dashboard'))
 
-      return '<h1> Invalid username or password. </h1>'
+      flash("Invalid username or password.")
+      return render_template('login.html', form=form)
 
 
    return render_template('login.html', form=form)
@@ -170,7 +168,7 @@ def register():
       db.session.add(new_user)
       db.session.commit()
 
-      return "<h1> New User has been Created </h1>"
+      return redirect(url_for('dashboard'))
 
    return render_template('register.html', form=form)
 
@@ -185,7 +183,26 @@ def dashboard():
       coin_id = coin.coin_id
       query_data = coin_data.query.get(coin_id)
       list_of_watching.append(query_data)
-   return render_template('dashboard.html', name=current_user.username, watching=list_of_watching, buying_power=current_user.buying_power)
+   
+   cur_investment_exists = cur_investment.query.filter_by(user_id=u_id).first()
+
+   if cur_investment_exists == None or cur_investment_exists == False:
+      create_cur_investment = cur_investment(user_id=u_id, investment_amount=0, time=datetime.now())
+      db.session.add(create_cur_investment)
+      db.session.commit()
+   else:
+      pass
+   
+   current_investment = cur_investment.query.filter_by(user_id=u_id).first()
+   user_wallet = wallet.query.filter_by(user_id=u_id).all()
+
+   wallet_info = []
+
+   for coin in user_wallet:
+      coin_info = coin_data.query.filter_by(id=coin.coin_id).first()
+      wallet_info.append(coin_info)
+
+   return render_template('dashboard.html', name=current_user.username, watching=list_of_watching, buying_power=current_user.buying_power, current_investment=current_investment.investment_amount, wallet_info=wallet_info, user_wallet=user_wallet)
 
 
 @app.route('/currencies')
@@ -214,33 +231,42 @@ def buypage(id):
 
          dollar_amnt = float(int(form.dollar_amnt.data))
          buy_quantity = float(dollar_amnt / float(coin_price[0]))
-         in_wallet = wallet.query.filter_by(coin_id=id).first()
+         in_wallet = wallet.query.filter_by(user_id=current_user.id, coin_id=id).first()
          user = users.query.get(current_user.id)
          dt = datetime.now()
 
          if user.buying_power >= dollar_amnt:
 
-            if in_wallet == None or in_wallet == False:
+            if in_wallet == None or in_wallet == 0:
                new_transaction = transaction_ledger(user_id=current_user.id, coin_id=id, buy=True, sell=False, quantity=buy_quantity, price_at_transaction=float(coin_price[0]), transaction_in_dollars=dollar_amnt, time=dt)
                wallet_addition = wallet(user_id=current_user.id, coin_id=id, quantity=buy_quantity)
                user.buying_power = int(user.buying_power) - dollar_amnt
+               current_investment = cur_investment.query.filter_by(user_id=user.id).first()
+               current_investment.investment_amount = int(current_investment.investment_amount) + dollar_amnt
                db.session.add(new_transaction)
                db.session.add(wallet_addition)
                db.session.commit()
-               return redirect(url_for('dashboard'))
+               return redirect('/dashboard')
             
-            elif in_wallet.quantity > 0:
+            elif in_wallet.quantity >= 0:
                new_transaction = transaction_ledger(user_id=current_user.id, coin_id=id, buy=True, sell=False, quantity=buy_quantity, price_at_transaction=float(coin_price[0]), transaction_in_dollars=dollar_amnt, time=dt)
                in_wallet.quantity += buy_quantity
                user.buying_power = int(user.buying_power) - dollar_amnt
+               current_investment = cur_investment.query.filter_by(user_id=user.id).first()
+               current_investment.investment_amount = int(current_investment.investment_amount) + dollar_amnt
                db.session.add(new_transaction)
                db.session.commit()
-               return redirect(url_for('dashboard'))
+               return redirect('/dashboard')
+
+            else:
+               return "here"
 
          else:
             flash(f"You do not have enough buying power. The max you can buy is ${float(user.buying_power)}")
             return redirect(f'/buypage/coin_id/{id}')
 
+      else:
+         return "oops!"
 
    elif request.method == 'GET':
       return render_template('buypage.html', form=form, info=coin_info, price=coin_price[0])
@@ -264,10 +290,10 @@ def sellpage(id):
 
          dollar_amnt = float(int(form.dollar_amnt.data))
          sell_quantity = float(dollar_amnt / float(coin_price[0]))
-         in_wallet = wallet.query.filter_by(coin_id=id).first()
+         in_wallet = wallet.query.filter_by(user_id=current_user.id, coin_id=id).first()
          dt = datetime.now()
 
-         if in_wallet == None:
+         if in_wallet == None or in_wallet == 0:
             flash("You don't own any of this currecy.")
             return redirect(f'/sellpage/coin_id/{id}')
 
@@ -278,14 +304,27 @@ def sellpage(id):
                new_transaction = transaction_ledger(user_id=current_user.id, coin_id=id, buy=False, sell=True, quantity=sell_quantity, price_at_transaction=float(coin_price[0]), transaction_in_dollars=dollar_amnt, time=dt)
                user = users.query.get(current_user.id)
                user.buying_power = int(user.buying_power) + dollar_amnt
+               current_investment = cur_investment.query.filter_by(user_id=user.id).first()
+               current_investment.investment_amount = int(current_investment.investment_amount) - dollar_amnt
                db.session.add(new_transaction)
                db.session.commit()
+               if in_wallet.quantity == 0:
+                  wallet.query.filter_by(user_id=current_user.id, coin_id=id).delete()
+                  db.session.commit()
+                  pass
                return redirect(url_for('dashboard'))
             
             else:
                max_sell_amount = int(in_wallet.quantity) * coin_price[0]
                flash(f"Your max sell amount is ${max_sell_amount}")
                return redirect(f'/sellpage/coin_id/{id}')
+
+         else:
+            flash("You don't own any of this currecy.")
+            return redirect(f'/sellpage/coin_id/{id}')
+
+      else:
+         return "oops!"
 
    elif request.method == 'GET':
       return render_template('sellpage.html', form=form, info=coin_info, price=coin_price[0])
@@ -347,6 +386,9 @@ def signout():
    logout_user()
    return redirect(url_for('index'))
 
+@app.template_filter('to_float')
+def to_float_filter(f):
+   return float(f)
 
 if __name__ == '__main__':
    db.create_all()

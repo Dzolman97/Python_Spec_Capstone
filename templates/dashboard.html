@@ -6,36 +6,30 @@
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Welcome, {{ name }}</h1>
     <h1 class="h4">Buying Power: ${{ buying_power }}</h1>
-    <h1 class="h4">Buying Power: ${{ buying_power }}</h1>
+    <h1 class="h4">Current Investment: ${{ current_investment }}</h1>
     <div class="btn-toolbar mb-2 mb-md-0"></div>
   </div>
 
-<canvas class="my-4 w-100" id="myChart" width="900" height="380"></canvas>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 
-
-<h2>Transactions: </h2>
-<div class="table-responsive">
-   <table class="table table-striped table-sm">
-       <thead>
-         <tr>
-           <th scope="col">Symbol</th>
-           <th scope="col">Price</th>
-           <th scope="col">1hr %</th>
-           <th scope="col">24hr %</th>
-           <th scope="col">24hr Volume</th>
-         </tr>
-       </thead>
-       <tbody>
-         <tr>
-            <td>1,001</td>
-            <td>random</td>
-            <td>data</td>
-            <td>placeholder</td>
-            <td>text</td>
-         </tr>
-       </tbody>
-      </table>
+  <div class="row row-cols-5">
+    {% for coin in wallet_info %}
+    <div class="card flex-wrap" style="width: 18rem; border-radius: 10px; padding: 10px; margin: 10px; box-shadow: 5px 5px rgb(153, 153, 153); background-color: rgb(74, 136, 136);">
+      {% if coin.id == user_wallet[0].coin_id %}
+      <h5 class="card-title" style="text-align: center;">{{ coin.coin_symbol }}</h5>
+      <p class="card-text" style="text-align: center;">Price: ${{ coin.coin_price }}</p>
+      <p class="card-text" style="text-align: center;">Coins Owned: {{ user_wallet[0].quantity }}</p>
+      <p class="card-text" style="text-align: center;">Amount: ${{ user_wallet[0].quantity * coin.coin_price|to_float }}</p>
+      <p style="text-align: center;"><a style="background-color: rgb(105, 105, 105); width: 14rem;" class="btn btn-primary" href="/buypage/coin_id/{{ coin.id }}">Buy</a></p>
+      <p style="text-align: center;"><a style="background-color: rgb(105, 105, 105); width: 14rem;" class="btn btn-primary" href="/sellpage/coin_id/{{ coin.id }}">Sell</a></p>
+      {% endif %}
     </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+
 
 <h2>Watchlist: </h2>
 <div class="table-responsive">
@@ -57,6 +51,8 @@
             <td>{{info.percent_change_1h}}</td>
             <td>{{info.percent_change_24h}}</td>
             <td>{{ info.volume_change_24h }}</td>
+            <td><p style="text-align: center;"><a style="background-color: rgb(105, 105, 105); width: 14rem;" class="btn btn-primary" href="/buypage/coin_id/{{ info.id }}">Buy</a></p></td>
+            <td><p style="text-align: center;"><a style="background-color: rgb(105, 105, 105); width: 14rem;" class="btn btn-primary" href="/sellpage/coin_id/{{ info.id }}">Sell</a></p></td>
          </tr>
          {% endfor %}
        </tbody>
