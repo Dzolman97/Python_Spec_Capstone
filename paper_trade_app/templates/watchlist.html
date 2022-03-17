@@ -11,6 +11,13 @@
   <div class="container-sm">
     <form class="register-form" style="background-color: rgb(255, 255, 255); border-radius: 5px; padding: 20px;" method="post" action="/watchlist">
       {{ form.hidden_tag() }}
+      {% with messages = get_flashed_messages() %}
+         {% if messages %}
+            {% for msg in messages %}
+               <div><p style="color: red;"> {{ msg }} </p></div>
+            {% endfor %}
+         {% endif %}
+      {% endwith %}
       <div class="mb-3">
         {{ wtf.form_field(form.coin_name) }}
       </div>

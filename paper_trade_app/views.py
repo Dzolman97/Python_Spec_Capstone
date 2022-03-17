@@ -1,5 +1,6 @@
 from flask import Blueprint, flash, render_template, redirect, request, url_for
 from flask_login import login_required, current_user, logout_user, login_user
+from sqlalchemy import null
 from werkzeug.security import generate_password_hash, check_password_hash
 from .forms import LoginForm, RegisterForm, WatchlistForm, TransactionForm
 from .models import users, user_watchlist, coin_data, transaction_ledger, wallet, cur_investment
@@ -26,7 +27,7 @@ def login():
       if user:
          if check_password_hash(user.password, form.password.data):
             login_user(user, remember=True)
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('.dashboard'))
 
       flash("Invalid username or password.")
       return render_template('login.html', form=form)
@@ -47,7 +48,7 @@ def register():
       db.session.commit()
 
       flash("New user successfully created! Please Login!")
-      return redirect(url_for('login'))
+      return redirect(url_for('.login'))
 
    return render_template('register.html', form=form)
 
@@ -204,7 +205,7 @@ def sellpage(id):
                   wallet.query.filter_by(user_id=current_user.id, coin_id=id).delete()
                   db.session.commit()
                   pass
-               return redirect(url_for('dashboard'))
+               return redirect(url_for('.dashboard'))
             
             else:
                max_sell_amount = int(in_wallet.quantity) * coin_price[0]
@@ -235,14 +236,20 @@ def watchlist():
             to_add = user_watchlist(user_id=u_id, coin_id=searched_for.id)
             db.session.add(to_add)
             db.session.commit()
-            return redirect(url_for('watchlist'))
+            return redirect(url_for('.watchlist'))
          else:
             coin_name = coin_name.capitalize()
             searched_for = coin_data.query.filter_by(coin_name=coin_name).first()
-            to_add = user_watchlist(user_id=u_id, coin_id=searched_for.id)
-            db.session.add(to_add)
-            db.session.commit()
-            return redirect(url_for('watchlist'))
+            if searched_for == None or searched_for == null:
+               flash("We either don't have this coin or you may need to modify your search terms:")
+               flash("- Searching by symbol: 'COIN' (all caps are needed)")
+               flash("- Searching by namee: 'name'")
+               return redirect('/watchlist')           
+            else:
+               to_add = user_watchlist(user_id=u_id, coin_id=searched_for.id)
+               db.session.add(to_add)
+               db.session.commit()
+               return redirect(url_for('.watchlist'))
    elif request.method == 'GET':
       user_watching_these = user_watchlist.query.filter_by(user_id=u_id).all()
       list_of_watching = []
@@ -260,7 +267,7 @@ def delete(id):
    try:
       db.session.delete(coin_to_delete)
       db.session.commit()
-      return redirect(url_for('watchlist'))
+      return redirect(url_for('.watchlist'))
 
    except:
       return "There was a problem deleting this from your watchlist. Please try again later."
@@ -284,7 +291,7 @@ def transactions():
 @login_required
 def signout():
    logout_user()
-   return redirect(url_for('index'))
+   return redirect(url_for('.index'))
 
 @views.app_template_filter('to_float')
 def to_float_filter(f):

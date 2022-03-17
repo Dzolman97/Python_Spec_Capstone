@@ -30,7 +30,7 @@
                   <td style="color: rgb(185, 43, 0);">Sell Order</td>
                 {% endif %}
                 <td>{{ transaction.quantity }}</td>
-                <td>{{ transaction.transaction_in_dollars }}</td>
+                <td>${{ transaction.transaction_in_dollars }}</td>
                 <td>{{ transaction.time }}</td>
               </tr>
             {% endif %}

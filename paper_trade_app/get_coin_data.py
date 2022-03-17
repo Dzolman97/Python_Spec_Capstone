@@ -106,9 +106,9 @@ def latest_data():
     return latest_coin_data
 
 
-hostname = 'localhost'
-database = 'test'
-username = 'postgres'
+hostname = os.getenv('HOSTNAME')
+database = os.getenv('DATABASE')
+username = os.getenv('DB_USERNAME')
 pwd = os.getenv('DB_PASS')
 port_id = 5432
 conn = None
